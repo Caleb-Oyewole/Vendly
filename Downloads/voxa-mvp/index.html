@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxa — AI Voice Coach</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --bg: #0f172a;
+            --bg-light: #1e293b;
+            --bg-card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --gradient-1: #6366f1;
+            --gradient-2: #8b5cf6;
+            --gradient-3: #ec4899;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--gradient-1) 0%, transparent 70%);
+            top: -200px;
+            right: -200px;
+            opacity: 0.15;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .bg-animation::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--gradient-2) 0%, transparent 70%);
+            bottom: -150px;
+            left: -150px;
+            opacity: 0.1;
+            animation: float 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* Navigation */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 3rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-light);
+            border-color: var(--primary-light);
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            padding-top: 80px;
+            min-height: 100vh;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Hero */
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 80px);
+            padding: 2rem 3rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--primary-light);
+            margin-bottom: 2rem;
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--secondary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Features */
+        .features {
+            padding: 6rem 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Session Page */
+        .session-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .session-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .session-header h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-header p {
+            color: var(--text-muted);
+        }
+
+        .voice-visualizer {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-visualizer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            border: none;
+            color: white;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .mic-button:hover {
+            transform: scale(1.05);
+        }
+
+        .mic-button.listening {
+            animation: micPulse 1.5s infinite;
+        }
+
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            70% { box-shadow: 0 0 0 30px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+
+        .waveform {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 60px;
+            margin-top: 2rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .waveform.active {
+            opacity: 1;
+        }
+
+        .wave-bar {
+            width: 4px;
+            background: linear-gradient(to top, var(--gradient-1), var(--gradient-2));
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 50px; }
+        }
+
+        .status-text {
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            min-height: 1.5em;
+        }
+
+        .status-text.listening {
+            color: var(--primary-light);
+        }
+
+        .status-text.processing {
+            color: var(--accent);
+        }
+
+        .status-text.success {
+            color: var(--secondary);
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow: hidden;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .coach-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .coach-info h4 {
+            font-weight: 600;
+        }
+
+        .coach-info span {
+            font-size: 0.85rem;
+            color: var(--secondary);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem 1.25rem;
+            border-radius: 18px;
+            line-height: 1.6;
+            animation: messageIn 0.3s ease-out;
+        }
+
+        @keyframes messageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.coach {
+            align-self: flex-start;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 1rem 1.25rem;
+            align-self: flex-start;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* Progress Dashboard */
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .dashboard-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .dashboard-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-change {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .dashboard-change.positive { color: var(--secondary); }
+        .dashboard-change.negative { color: var(--error); }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-container h3 {
+            margin-bottom: 1.5rem;
+        }
+
+        .chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 200px;
+            gap: 1rem;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--gradient-1), var(--gradient-2));
+            border-radius: 8px 8px 0 0;
+            min-width: 30px;
+            transition: height 1s ease;
+            position: relative;
+        }
+
+        .chart-bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .chart-bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Exercise Library */
+        .exercises {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .exercise-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .exercise-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .exercise-item:hover {
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .exercise-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .exercise-info {
+            flex: 1;
+        }
+
+        .exercise-info h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .exercise-info p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .exercise-meta {
+            display: flex;
+            gap: 1rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .exercise-tag {
+            padding: 0.25rem 0.75rem;
+            background: rgba(99, 102, 241, 0.15);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: var(--primary-light);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .features {
+                padding: 4rem 1.5rem;
+            }
+
+            .session-container, .dashboard, .exercises {
+                padding: 1rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Pitch Meter */
+        .pitch-meter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            height: 80px;
+            margin: 2rem 0;
+        }
+
+        .pitch-segment {
+            width: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            transition: all 0.1s;
+        }
+
+        .pitch-segment.active {
+            background: linear-gradient(to top, var(--secondary), var(--primary));
+        }
+
+        .pitch-segment.target {
+            background: var(--accent);
+        }
+
+        .pitch-labels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .toast.success .toast-icon { background: rgba(16, 185, 129, 0.2); }
+        .toast.info .toast-icon { background: rgba(99, 102, 241, 0.2); }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">🎵</div>
+            Voxa
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="nav-link active" data-section="home">Home</a></li>
+            <li><a href="#" class="nav-link" data-section="session">Start Session</a></li>
+            <li><a href="#" class="nav-link" data-section="progress">Progress</a></li>
+            <li><a href="#" class="nav-link" data-section="exercises">Exercises</a></li>
+        </ul>
+        <button class="btn btn-primary">Get Started</button>
+    </nav>
+
+    <!-- Home Section -->
+    <section id="home" class="section active">
+        <div class="hero">
+            <div class="hero-content">
+                <div class="badge">
+                    <span class="badge-dot"></span>
+                    AI-Powered Voice Training
+                </div>
+                <h1>Your Personal AI Voice Coach</h1>
+                <p>Real-time interactive vocal training that listens, teaches, and corrects continuously — just like a live instructor, but always available.</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary btn-lg" onclick="showSection('session')">Start Free Session</button>
+                    <button class="btn btn-outline btn-lg" onclick="showSection('progress')">View Progress</button>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value">10K+</div>
+                        <div class="stat-label">Active Singers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">4.9★</div>
+                        <div class="stat-label">User Rating</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">500K+</div>
+                        <div class="stat-label">Sessions Completed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="section-header">
+                <h2>Why Voxa is Different</h2>
+                <p>Unlike static apps that just score your voice, Voxa engages in a real conversation — teaching, correcting, and adapting in real time.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(99, 102, 241, 0.15);">🎙️</div>
+                    <h3>Real-Time Listening</h3>
+                    <p>Continuous voice analysis using advanced pitch detection and tone analysis — no waiting for scores after you finish.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(16, 185, 129, 0.15);">💬</div>
+                    <h3>Conversational AI Coach</h3>
+                    <p>Natural back-and-forth dialogue that feels like a real lesson. Ask questions, get feedback, and learn as you go.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(245, 158, 11, 0.15);">📊</div>
+                    <h3>Adaptive Progress Tracking</h3>
+                    <p>Sessions automatically adjust based on your improvement patterns. No two sessions are ever the same.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(236, 72, 153, 0.15);">🎯</div>
+                    <h3>Structured Exercises</h3>
+                    <p>Curated vocal exercises from warm-ups to advanced techniques, paced entirely by your comfort level.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(139, 92, 246, 0.15);">🌍</div>
+                    <h3>Accessible Anywhere</h3>
+                    <p>Quality vocal coaching on any device. No expensive lessons, no geographic limits — just your voice and Voxa.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon" style="background: rgba(99, 102, 241, 0.15);">🔒</div>
+                    <h3>Privacy First</h3>
+                    <p>Your voice data stays yours. Processed locally where possible, encrypted and secure everywhere else.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Session Section -->
+    <section id="session" class="section">
+        <div class="session-container">
+            <div class="session-header">
+                <h2>🎤 Voice Training Session</h2>
+                <p>Tap the microphone to begin your personalized vocal coaching session</p>
+            </div>
+
+            <div class="voice-visualizer">
+                <button class="mic-button" id="micBtn" onclick="toggleSession()">🎙️</button>
+                <div class="status-text" id="statusText">Tap the microphone to start</div>
+
+                <div class="waveform" id="waveform">
+                    <div class="wave-bar" style="animation-delay: 0s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.1s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.2s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.3s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.4s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.5s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.6s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.7s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.8s;"></div>
+                    <div class="wave-bar" style="animation-delay: 0.9s;"></div>
+                    <div class="wave-bar" style="animation-delay: 1.0s;"></div>
+                    <div class="wave-bar" style="animation-delay: 1.1s;"></div>
+                </div>
+
+                <div class="pitch-meter" id="pitchMeter" style="display: none;">
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                    <div class="pitch-segment"></div>
+                </div>
+                <div class="pitch-labels" id="pitchLabels" style="display: none;">
+                    <span>Low</span>
+                    <span>Target</span>
+                    <span>High</span>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="coach-avatar">🎵</div>
+                    <div class="coach-info">
+                        <h4>Voxa Coach</h4>
+                        <span>● Online</span>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message coach">
+                        Hello! I'm Voxa, your AI voice coach. I'm ready to help you improve your singing today. Tap the microphone when you're ready to begin! 🎤
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Progress Section -->
+    <section id="progress" class="section">
+        <div class="dashboard">
+            <div class="section-header">
+                <h2>Your Progress Dashboard</h2>
+                <p>Track your vocal improvement over time with detailed analytics and insights.</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h3>Total Sessions</h3>
+                    <div class="dashboard-value">24</div>
+                    <div class="dashboard-change positive">
+                        <span>↑</span> +3 this week
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Average Pitch Accuracy</h3>
+                    <div class="dashboard-value">87%</div>
+                    <div class="dashboard-change positive">
+                        <span>↑</span> +12% from last month
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 87%;"></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Vocal Range</h3>
+                    <div class="dashboard-value">2.3 oct</div>
+                    <div class="dashboard-change positive">
+                        <span>↑</span> +0.4 oct gained
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Current Streak</h3>
+                    <div class="dashboard-value">7 days</div>
+                    <div class="dashboard-change positive">
+                        <span>🔥</span> Keep it up!
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Pitch Accuracy Over Time</h3>
+                <div class="chart" id="accuracyChart">
+                    <div class="chart-bar" style="height: 40%;">
+                        <span class="chart-bar-value">45%</span>
+                        <span class="chart-bar-label">Week 1</span>
+                    </div>
+                    <div class="chart-bar" style="height: 52%;">
+                        <span class="chart-bar-value">52%</span>
+                        <span class="chart-bar-label">Week 2</span>
+                    </div>
+                    <div class="chart-bar" style="height: 58%;">
+                        <span class="chart-bar-value">58%</span>
+                        <span class="chart-bar-label">Week 3</span>
+                    </div>
+                    <div class="chart-bar" style="height: 65%;">
+                        <span class="chart-bar-value">65%</span>
+                        <span class="chart-bar-label">Week 4</span>
+                    </div>
+                    <div class="chart-bar" style="height: 72%;">
+                        <span class="chart-bar-value">72%</span>
+                        <span class="chart-bar-label">Week 5</span>
+                    </div>
+                    <div class="chart-bar" style="height: 78%;">
+                        <span class="chart-bar-value">78%</span>
+                        <span class="chart-bar-label">Week 6</span>
+                    </div>
+                    <div class="chart-bar" style="height: 87%;">
+                        <span class="chart-bar-value">87%</span>
+                        <span class="chart-bar-label">Now</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Session Duration (minutes)</h3>
+                <div class="chart" id="durationChart">
+                    <div class="chart-bar" style="height: 30%;">
+                        <span class="chart-bar-value">12m</span>
+                        <span class="chart-bar-label">Mon</span>
+                    </div>
+                    <div class="chart-bar" style="height: 45%;">
+                        <span class="chart-bar-value">18m</span>
+                        <span class="chart-bar-label">Tue</span>
+                    </div>
+                    <div class="chart-bar" style="height: 25%;">
+                        <span class="chart-bar-value">10m</span>
+                        <span class="chart-bar-label">Wed</span>
+                    </div>
+                    <div class="chart-bar" style="height: 60%;">
+                        <span class="chart-bar-value">24m</span>
+                        <span class="chart-bar-label">Thu</span>
+                    </div>
+                    <div class="chart-bar" style="height: 50%;">
+                        <span class="chart-bar-value">20m</span>
+                        <span class="chart-bar-label">Fri</span>
+                    </div>
+                    <div class="chart-bar" style="height: 70%;">
+                        <span class="chart-bar-value">28m</span>
+                        <span class="chart-bar-label">Sat</span>
+                    </div>
+                    <div class="chart-bar" style="height: 55%;">
+                        <span class="chart-bar-value">22m</span>
+                        <span class="chart-bar-label">Sun</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Exercises Section -->
+    <section id="exercises" class="section">
+        <div class="exercises">
+            <div class="section-header">
+                <h2>Vocal Exercise Library</h2>
+                <p>Structured exercises curated by professional vocal coaches, adapted to your level.</p>
+            </div>
+            <div class="exercise-list">
+                <div class="exercise-item" onclick="startExercise('warmup')">
+                    <div class="exercise-number">1</div>
+                    <div class="exercise-info">
+                        <h4>Basic Warm-Up</h4>
+                        <p>Gentle vocal warm-up to prepare your voice for training</p>
+                    </div>
+                    <div class="exercise-meta">
+                        <span>⏱️ 5 min</span>
+                        <span class="exercise-tag">Beginner</span>
+                    </div>
+                </div>
+                <div class="exercise-item" onclick="startExercise('breathing')">
+                    <div class="exercise-number">2</div>
+                    <div class="exercise-info">
+                        <h4>Breath Control</h4>
+                        <p>Diaphragmatic breathing exercises for sustained notes</p>
+                    </div>
+                    <div class="exercise-meta">
+                        <span>⏱️ 8 min</span>
+                        <span class="exercise-tag">Beginner</span>
+                    </div>
+                </div>
+                <div class="exercise-item" onclick="startExercise('scales')">
+                    <div class="exercise-number">3</div>
+                    <div class="exercise-info">
+                        <h4>Major Scale Ascending</h4>
+                        <p>Practice pitch accuracy with ascending major scales</p>
+                    </div>
+                    <div class="exercise-meta">
+                        <span>⏱️ 10 min</span>
+                        <span class="exercise-tag">Intermediate</span>
+                    </div>
+                </div>
+                <div class="exercise-item" onclick="startExercise('arpeggios')">
+                    <div class="exercise-number">4</div>
+                    <div class="exercise-info">
+                        <h4>Arpeggio Patterns</h4>
+                        <p>Broken chord exercises to improve vocal agility</p>
+                    </div>
+                    <div class="exercise-meta">
+                        <span>⏱️ 12 min</span>
+                        <span class="exercise-tag">Intermediate</span>
+                    </div>
+                </div>
+                <div class="exercise-item" onclick="startExercise('vibrato')">
+                    <div class="exercise-number">5</div>
+                    <div class="exercise-info">
+                        <h4>Vibrato Development</h4>
+                        <p>Controlled vibrato exercises for expressive singing</p>
+                    </div>
+                    <div class="exercise-meta">
+                        <span>⏱️ 15 min</span>
+                        <span class="exercise-tag">Advanced</span>
+                    </div>
+                </div>
+                <div class="exercise-item" onclick="startExercise('runs')">
+                    <div class="exercise-number">6</div>
+                    <div class="exercise-info">
+                        <h4>Vocal Runs & Riffs</h4>
+                        <p>Fast melodic passages to build vocal dexterity</p>
+                    </div>
+                    <div class="exercise-meta">
+                        <span>⏱️ 15 min</span>
+                        <span class="exercise-tag">Advanced</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <div class="toast-icon">✓</div>
+        <div>
+            <div style="font-weight: 600;" id="toastTitle">Success</div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);" id="toastMessage">Operation completed</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Built with 💜 by <strong>CodeKING</strong> (Olamilekan) • Voxa AI Voice Coach</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem;">MVP Prototype • Entrepreneurship & Technology Innovation</p>
+    </footer>
+
+    <script>
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showSection(link.dataset.section);
+            });
+        });
+
+        // Session Logic
+        let isListening = false;
+        let sessionStep = 0;
+        let pitchInterval;
+
+        const coachMessages = [
+            "Great start! I can hear you're warming up. Let's try a simple 'ah' sound on this note. 🎵",
+            "Good! Now let's work on your breathing. Take a deep breath from your diaphragm... inhale... and sing 'ha' on this pitch.",
+            "Excellent breath control! I noticed your pitch is slightly flat. Try to lift the soft palate — imagine a gentle yawn. Let's try again.",
+            "Much better! Your resonance is improving. Now let's do a 5-note scale ascending. I'll guide you through each note.",
+            "Outstanding! Your pitch accuracy on that scale was 89%. You're making real progress. Let's do one more set to reinforce this.",
+            "Perfect session! Your vocal range has expanded by 2 semitones since we started. Keep practicing daily and you'll see even more improvement! 🌟"
+        ];
+
+        const userMessages = [
+            "Okay, I'm ready! 🎤",
+            "Like this? *sings 'ah'*",
+            "Got it, let me try the breathing exercise.",
+            "I think I felt the difference!",
+            "That was challenging but fun!",
+            "Thanks, Voxa! See you tomorrow! 👋"
+        ];
+
+        function toggleSession() {
+            const micBtn = document.getElementById('micBtn');
+            const statusText = document.getElementById('statusText');
+            const waveform = document.getElementById('waveform');
+            const pitchMeter = document.getElementById('pitchMeter');
+            const pitchLabels = document.getElementById('pitchLabels');
+
+            if (!isListening) {
+                // Start session
+                isListening = true;
+                micBtn.classList.add('listening');
+                statusText.textContent = 'Listening... Sing now!';
+                statusText.className = 'status-text listening';
+                waveform.classList.add('active');
+                pitchMeter.style.display = 'flex';
+                pitchLabels.style.display = 'flex';
+
+                // Start pitch simulation
+                startPitchSimulation();
+
+                // Simulate coaching flow
+                setTimeout(() => {
+                    addMessage('user', userMessages[0]);
+                }, 2000);
+
+                setTimeout(() => {
+                    addMessage('coach', coachMessages[0]);
+                    showToast('info', 'New Exercise', 'Starting with vocal warm-up');
+                }, 4000);
+
+                // Continue the conversation
+                let msgIndex = 1;
+                const msgInterval = setInterval(() => {
+                    if (!isListening || msgIndex >= coachMessages.length) {
+                        clearInterval(msgInterval);
+                        return;
+                    }
+
+                    setTimeout(() => addMessage('user', userMessages[msgIndex]), 500);
+                    setTimeout(() => {
+                        addMessage('coach', coachMessages[msgIndex]);
+                        if (msgIndex === 3) showToast('success', 'Great Progress!', 'Pitch accuracy: 89%');
+                    }, 2500);
+
+                    msgIndex++;
+                }, 6000);
+
+                // Auto-end after full session
+                setTimeout(() => {
+                    if (isListening) {
+                        endSession();
+                        showToast('success', 'Session Complete!', 'Great work today! +50 XP');
+                    }
+                }, 45000);
+
+            } else {
+                endSession();
+            }
+        }
+
+        function endSession() {
+            isListening = false;
+            const micBtn = document.getElementById('micBtn');
+            const statusText = document.getElementById('statusText');
+            const waveform = document.getElementById('waveform');
+            const pitchMeter = document.getElementById('pitchMeter');
+            const pitchLabels = document.getElementById('pitchLabels');
+
+            micBtn.classList.remove('listening');
+            statusText.textContent = 'Session ended. Tap to start a new session.';
+            statusText.className = 'status-text';
+            waveform.classList.remove('active');
+            pitchMeter.style.display = 'none';
+            pitchLabels.style.display = 'none';
+            stopPitchSimulation();
+        }
+
+        function addMessage(sender, text) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `${text}<div class="message-time">${time}</div>`;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function startPitchSimulation() {
+            const segments = document.querySelectorAll('.pitch-segment');
+            const targetIndex = 10;
+
+            pitchInterval = setInterval(() => {
+                segments.forEach((seg, i) => {
+                    seg.classList.remove('active', 'target');
+                    if (i === targetIndex) {
+                        seg.classList.add('target');
+                    }
+                    // Random activation around target
+                    if (Math.random() > 0.7 && Math.abs(i - targetIndex) < 4) {
+                        seg.classList.add('active');
+                        seg.style.height = (20 + Math.random() * 60) + 'px';
+                    } else {
+                        seg.style.height = '8px';
+                    }
+                });
+            }, 200);
+        }
+
+        function stopPitchSimulation() {
+            clearInterval(pitchInterval);
+            document.querySelectorAll('.pitch-segment').forEach(seg => {
+                seg.classList.remove('active', 'target');
+                seg.style.height = '8px';
+            });
+        }
+
+        // Toast
+        function showToast(type, title, message) {
+            const toast = document.getElementById('toast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = toast.querySelector('.toast-icon');
+
+            toast.className = `toast ${type} show`;
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            toastIcon.textContent = type === 'success' ? '✓' : 'ℹ️';
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // Exercise starter
+        function startExercise(exercise) {
+            showSection('session');
+            setTimeout(() => {
+                if (!isListening) toggleSession();
+            }, 500);
+        }
+
+        // Animate charts on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.querySelectorAll('.chart-bar').forEach(bar => {
+                    const height = bar.style.height;
+                    bar.style.height = '0%';
+                    setTimeout(() => {
+                        bar.style.height = height;
+                    }, 100);
+                });
+            }, 500);
+        });
+    </script>
+</body>
+</html>
