@@ -13,8 +13,9 @@ def get_event_budget(event_id: int, db: Connection = Depends(get_db)):
     Calculates and returns the aggregated budget summary for a given event,
     including total costs, deposits paid, and remaining balances due.
     """
-    # 1. Fetch event details
     cursor = db.cursor()
+
+    # 1. Fetch event details safely using index positional tuples
     cursor.execute("SELECT id, title FROM events WHERE id = ?", (event_id,))
     event = cursor.fetchone()
 
@@ -24,7 +25,11 @@ def get_event_budget(event_id: int, db: Connection = Depends(get_db)):
             detail=f"Event with ID {event_id} not found",
         )
 
-    # 2. Fetch all vendors linked to this event
+    # 2. Extract event attributes using integer indexing
+    e_id = event[0]
+    e_title = event[1]
+
+    # 3. Fetch all vendors linked to this event
     cursor.execute(
         """
         SELECT id, name, role, status, deposit_amount, balance_amount 
@@ -35,7 +40,7 @@ def get_event_budget(event_id: int, db: Connection = Depends(get_db)):
     )
     vendor_rows = cursor.fetchall()
 
-    # 3. Aggregate totals
+    # 4. Aggregate financial totals safely
     vendor_summaries = []
     total_budget = 0.0
     total_deposits = 0.0
@@ -43,8 +48,10 @@ def get_event_budget(event_id: int, db: Connection = Depends(get_db)):
 
     for row in vendor_rows:
         v_id, name, role, vendor_status, deposit, balance = row
-        deposit_val = deposit or 0.0
-        balance_val = balance or 0.0
+        
+        # Guard against None/NULL database values
+        deposit_val = float(deposit) if deposit is not None else 0.0
+        balance_val = float(balance) if balance is not None else 0.0
         v_total = deposit_val + balance_val
 
         total_deposits += deposit_val
@@ -55,18 +62,18 @@ def get_event_budget(event_id: int, db: Connection = Depends(get_db)):
             VendorBudgetSummary(
                 vendor_id=v_id,
                 name=name,
-                role=role,
-                status=vendor_status,
+                role=role or "Vendor",
+                status=vendor_status or "PENDING",
                 deposit_amount=deposit_val,
                 balance_amount=balance_val,
                 total_cost=v_total,
             )
         )
 
-    # 4. Return aggregated response payload
+    # 5. Return aggregated response payload
     return EventBudgetResponse(
-        event_id=event["id"],
-        event_title=event["title"],
+        event_id=e_id,
+        event_title=e_title,
         total_budget=total_budget,
         total_deposits_paid=total_deposits,
         total_balance_due=total_balance,

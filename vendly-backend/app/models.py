@@ -1,7 +1,7 @@
 from typing import Any
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.database import Base  # pyright: ignore[reportAttributeAccessIssue]
 
 class Event(Base):
     __tablename__ = "events"

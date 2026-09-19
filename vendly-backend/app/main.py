@@ -1,9 +1,12 @@
 # app/main.py
 from fastapi import FastAPI, Request, Response, HTTPException, status
 from app.config import settings
+from app.database import init_db
 
 # Import all modular routers
 from app.routers import budget, events, notify
+
+init_db()
 
 app = FastAPI(
     title="Vendly API",
