@@ -4,7 +4,7 @@ from app.config import settings
 from app.database import init_db
 
 # Import all modular routers
-from app.routers import budget, events, notify
+from app.routers import budget, events, notify, health
 
 init_db()
 
@@ -18,6 +18,7 @@ app = FastAPI(
 app.include_router(events.router)
 app.include_router(notify.router)
 app.include_router(budget.router)
+app.include_router(health.router)
 
 
 @app.get("/", tags=["Default"])
