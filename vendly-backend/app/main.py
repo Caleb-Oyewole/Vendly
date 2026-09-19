@@ -10,6 +10,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Vendly API", version="1.0.0")
 
+@app.get("/")
+def root():
+    return {
+        "message": "Welcome to Vendly API!",
+        "docs": "Visit /docs for the interactive API documentation"
+    }
+    
 @app.get("/api/v1/health")
 def health_check():
     return {"status": "healthy"}
