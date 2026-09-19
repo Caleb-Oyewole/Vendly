@@ -1,22 +1,57 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+# app/database.py
+import sqlite3
 
-# Set up SQLite database connection file
-DATABASE_URL = "sqlite:///./vendly.db"
+DB_NAME = "vendly.db"
 
-# Engine connects Python to SQLite; check_same_thread is needed for SQLite with FastAPI threads
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
-# SessionLocal creates fresh database sessions per request
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base class used by all ORM models to map tables
-Base = declarative_base()
-
-# Dependency function to provide a database session to API endpoints and close it when done
 def get_db():
-    db = SessionLocal()
+    """
+    FastAPI dependency that yields a database connection per request.
+    Enables dictionary-like row attribute access across all routers.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row  # Enables dict-style column access (e.g., row["title"])
     try:
-        yield db
+        yield conn
     finally:
-        db.close()
+        conn.close()
+
+
+def init_db():
+    """
+    Initializes SQLite tables on server startup if they do not already exist.
+    Creates both 'events' and 'vendors' tables with primary and foreign key constraints.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # 1. Create Events Table
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            organizer_name TEXT NOT NULL
+        )
+        """
+    )
+
+    # 2. Create Vendors Table linked to Events
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS vendors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            phone_number TEXT NOT NULL,
+            deposit_amount REAL DEFAULT 0.0,
+            balance_amount REAL DEFAULT 0.0,
+            status TEXT DEFAULT 'PENDING',
+            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+        )
+        """
+    )
+
+    conn.commit()
+    conn.close()
