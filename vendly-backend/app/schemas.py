@@ -30,3 +30,13 @@ class EventStatusResponse(BaseModel):
     vendors: List[VendorResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+    
+class NotificationRequest(BaseModel):
+    vendor_id: int
+    phone_number: str
+    vendor_name: str
+    event_title: str
+
+class NotificationResponse(BaseModel):
+    status: str
+    message_id: str

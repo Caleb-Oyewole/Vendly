@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -9,7 +10,6 @@ class Event(Base):
     title = Column(String, nullable=False)
     organizer_name = Column(String, nullable=False)
 
-    # One event can have multiple vendors attached to it
     vendors = relationship("Vendor", back_populates="event", cascade="all, delete-orphan")
 
 
@@ -21,7 +21,9 @@ class Vendor(Base):
     name = Column(String, nullable=False)
     role = Column(String, nullable=False)
     phone_number = Column(String, nullable=False)
-    status = Column(String, default="PENDING")  # Statuses: PENDING, ACCEPTED, DECLINED
+    
+    # Adding Any type annotation prevents Pylance assignment warnings
+    status: Any = Column(String, default="PENDING")
     deposit_amount = Column(Float, default=0.0)
     balance_amount = Column(Float, default=0.0)
 
