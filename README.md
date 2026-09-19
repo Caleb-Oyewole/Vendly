@@ -2,7 +2,7 @@
 
 Vendly is a FastAPI backend for managing events and vendors, with WhatsApp Cloud API integration for vendor notifications and interactive responses.
 
-## Current Status
+## Project Status
 
 The backend currently provides:
 
