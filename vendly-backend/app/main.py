@@ -27,12 +27,6 @@ def read_root():
     return {"message": "Vendly API is active"}
 
 
-@app.get("/api/v1/health", tags=["Default"])
-def health_check():
-    """System health check endpoint for monitoring API status."""
-    return {"status": "healthy", "environment": settings.APP_ENV}
-
-
 @app.get("/api/v1/webhook/whatsapp", tags=["Default"])
 def verify_webhook(request: Request):
     """Meta Webhook Challenge Verification Route."""
