@@ -1,4 +1,25 @@
-git rm -r --cached app/__pycache__ vendly.db
-git add .gitignore
-git commit -m "Add .gitignore, stop tracking db and pycache"
-git push
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+.env.*
+
+# Databases
+*.db
+*.sqlite3
+
+# Node / frontend (ready for when vendly-frontend lands in this repo)
+node_modules/
+dist/
+.vite/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
