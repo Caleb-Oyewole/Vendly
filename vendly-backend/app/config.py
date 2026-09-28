@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     USE_MOCK_WHATSAPP: bool = True
 
     # Meta WhatsApp API Credentials
-    WHATSAPP_VERIFY_TOKEN: str = "vendly_secret_verify_token"
-    WHATSAPP_PHONE_NUMBER_ID: str = ""
-    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = "V3ndly_Wh4t5App_7ok3n_9fK2mQx8"
+    WHATSAPP_PHONE_NUMBER_ID: str = "1426941730493435"
+    WHATSAPP_ACCESS_TOKEN: str = "EAANkxqqBgOQBSi2pJiaAnGSKbSLkoAfjuJhuHDLZBEfdbvCZAZBnm56HTkUxGZBohjLkP5z5slVbvJDwDCkFcTugL97L8vOMi5oEZCs81sNZA5RRRtplKfOnf0hmDHeOFXXBVOZAjeiEhU4ZALqXUAD92qbgYZAuOJ0fslM7CXOyReUnyx6AxwFSLFSv0Qnm6HQZDZD"
 
     # Webhook Callback Settings
     LOCAL_WEBHOOK_URL: str = "http://127.0.0.1:8000/api/v1/webhook/whatsapp"
