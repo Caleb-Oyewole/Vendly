@@ -1,0 +1,17 @@
+{
+    "name": "Smoke Test Event",
+    "event_date": "2026-12-01",
+    "start_time": "16:00",
+    "venue": "Test Venue, Lagos",
+    "notes": "",
+    "vendors": [
+        {
+            "role": "DJ",
+            "name": "Test DJ",
+            "phone": "+2348012345671",
+            "arrival_time": "14:00",
+            "deposit_amount": 5000000,
+            "balance_amount": 10000000
+        }
+    ]
+}

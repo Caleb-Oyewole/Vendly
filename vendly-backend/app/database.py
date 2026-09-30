@@ -1,57 +1,37 @@
-# app/database.py
-import sqlite3
+"""
+Replaces the old raw-sqlite3 database.py. Spec section 3 requires SQLAlchemy 2
+models running on SQLite in dev and Postgres (Neon) in deploy, switched purely
+by DATABASE_URL -- no code change between environments.
+"""
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
-DB_NAME = "vendly.db"
+from app.config import settings
+
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    # Needed because FastAPI can use the connection across threads.
+    connect_args = {"check_same_thread": False}
+
+engine = create_engine(settings.DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
 
 
 def get_db():
-    """
-    FastAPI dependency that yields a database connection per request.
-    Enables dictionary-like row attribute access across all routers.
-    """
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row  # Enables dict-style column access (e.g., row["title"])
+    """FastAPI dependency yielding an ORM session per request."""
+    db: Session = SessionLocal()
     try:
-        yield conn
+        yield db
     finally:
-        conn.close()
+        db.close()
 
 
-def init_db():
-    """
-    Initializes SQLite tables on server startup if they do not already exist.
-    Creates both 'events' and 'vendors' tables with primary and foreign key constraints.
-    """
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
+def init_db() -> None:
+    """Creates all tables on startup if they don't already exist."""
+    # Import models here (not at module top) so they register on Base
+    # before create_all runs, without causing a circular import.
+    from app import models  # noqa: F401
 
-    # 1. Create Events Table
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            organizer_name TEXT NOT NULL
-        )
-        """
-    )
-
-    # 2. Create Vendors Table linked to Events
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS vendors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            role TEXT NOT NULL,
-            phone_number TEXT NOT NULL,
-            deposit_amount REAL DEFAULT 0.0,
-            balance_amount REAL DEFAULT 0.0,
-            status TEXT DEFAULT 'PENDING',
-            FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
-        )
-        """
-    )
-
-    conn.commit()
-    conn.close()
+    Base.metadata.create_all(bind=engine)

@@ -1,82 +1,135 @@
 # app/routers/budget.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlite3 import Connection
+"""
+E11, E12 from Backend Spec sections 5, 5.1, 4.3. The previous budget.py only
+summed raw vendor columns -- it had no Payment table, no disburse endpoint,
+and none of the 409 rules that keep money-handling correct.
+"""
+from datetime import datetime
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.schemas import EventBudgetResponse, VendorBudgetSummary
+from app.errors import NotFoundError, ConflictError, PaymentFailedError
+from app.models import Event, Vendor, Payment
+from app.schemas import DisburseRequest
+from app.services import payments_client
+from app.services.status import touch
+from app.services.activity import log_activity
 
-router = APIRouter(prefix="/api/v1/events", tags=["Budget"])
+router = APIRouter(prefix="/api/v1", tags=["Budget"])
 
 
-@router.get("/{event_id}/budget", response_model=EventBudgetResponse)
-def get_event_budget(event_id: int, db: Connection = Depends(get_db)):
-    """
-    Calculates and returns the aggregated budget summary for a given event,
-    including total costs, deposits paid, and remaining balances due.
-    """
-    cursor = db.cursor()
-
-    # 1. Fetch event details safely using index positional tuples
-    cursor.execute("SELECT id, title FROM events WHERE id = ?", (event_id,))
-    event = cursor.fetchone()
-
-    if not event:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Event with ID {event_id} not found",
-        )
-
-    # 2. Extract event attributes using integer indexing
-    e_id = event[0]
-    e_title = event[1]
-
-    # 3. Fetch all vendors linked to this event
-    cursor.execute(
-        """
-        SELECT id, name, role, status, deposit_amount, balance_amount 
-        FROM vendors 
-        WHERE event_id = ?
-        """,
-        (event_id,),
+def _latest_payment(db: Session, vendor_id: int, kind: str) -> Payment | None:
+    return (
+        db.query(Payment)
+        .filter(Payment.vendor_id == vendor_id, Payment.kind == kind)
+        .order_by(Payment.id.desc()).first()
     )
-    vendor_rows = cursor.fetchall()
 
-    # 4. Aggregate financial totals safely
-    vendor_summaries = []
-    total_budget = 0.0
-    total_deposits = 0.0
-    total_balance = 0.0
 
-    for row in vendor_rows:
-        v_id, name, role, vendor_status, deposit, balance = row
-        
-        # Guard against None/NULL database values
-        deposit_val = float(deposit) if deposit is not None else 0.0
-        balance_val = float(balance) if balance is not None else 0.0
-        v_total = deposit_val + balance_val
+@router.get("/events/{event_id}/budget")
+def get_budget(event_id: int, db: Session = Depends(get_db)):
+    """E11: totals and per-vendor deposit/balance state."""
+    event = db.get(Event, event_id)
+    if event is None:
+        raise NotFoundError(f"Event {event_id} not found")
 
-        total_deposits += deposit_val
-        total_balance += balance_val
-        total_budget += v_total
+    vendors = db.query(Vendor).filter(Vendor.event_id == event_id).all()
+    budget = sum(v.deposit_amount + v.balance_amount for v in vendors)
+    deposits_paid = 0
+    balances_paid = 0
+    vendor_rows = []
 
-        vendor_summaries.append(
-            VendorBudgetSummary(
-                vendor_id=v_id,
-                name=name,
-                role=role or "Vendor",
-                status=vendor_status or "PENDING",
-                deposit_amount=deposit_val,
-                balance_amount=balance_val,
-                total_cost=v_total,
-            )
-        )
+    for v in vendors:
+        deposit = _latest_payment(db, v.id, "deposit")
+        balance = _latest_payment(db, v.id, "balance")
+        if deposit and deposit.status == "paid":
+            deposits_paid += deposit.amount
+        if balance and balance.status == "paid":
+            balances_paid += balance.amount
 
-    # 5. Return aggregated response payload
-    return EventBudgetResponse(
-        event_id=e_id,
-        event_title=e_title,
-        total_budget=total_budget,
-        total_deposits_paid=total_deposits,
-        total_balance_due=total_balance,
-        vendor_count=len(vendor_summaries),
-        vendors=vendor_summaries,
+        vendor_rows.append({
+            "vendor_id": v.id, "role": v.role, "name": v.name, "vendor_status": v.status,
+            "deposit": {
+                "amount": v.deposit_amount,
+                "status": deposit.status if deposit else ("due" if v.status == "confirmed" else "not_due"),
+                "paid_at": deposit.updated_at.isoformat() + "Z" if deposit and deposit.status == "paid" else None,
+            },
+            "balance": {
+                "amount": v.balance_amount,
+                "status": balance.status if balance else ("due" if deposit and deposit.status == "paid" else "not_due"),
+                "paid_at": balance.updated_at.isoformat() + "Z" if balance and balance.status == "paid" else None,
+            },
+        })
+
+    return {
+        "event_id": event_id, "currency": event.currency, "mode": payments_client.get_mode(),
+        "totals": {
+            "budget": budget, "deposits_paid": deposits_paid, "balances_paid": balances_paid,
+            "outstanding": budget - deposits_paid - balances_paid,
+        },
+        "vendors": vendor_rows,
+    }
+
+
+@router.post("/budget/{vendor_id}/disburse")
+def disburse(vendor_id: int, payload: DisburseRequest, db: Session = Depends(get_db)):
+    """E12. Rules enforced here, never in the client (spec 4.3):
+      - deposit requires vendor.status == 'confirmed'
+      - balance requires the deposit payment to already be 'paid'
+      - at most one live (processing|paid) payment per vendor+kind
+      - the amount always comes from the vendors row, never the request body
+    """
+    vendor = db.get(Vendor, vendor_id)
+    if vendor is None:
+        raise NotFoundError(f"Vendor {vendor_id} not found")
+
+    kind = payload.kind
+
+    if kind == "deposit" and vendor.status != "confirmed":
+        raise ConflictError("Deposit requires the vendor to be confirmed first")
+
+    if kind == "balance":
+        deposit = _latest_payment(db, vendor_id, "deposit")
+        if not deposit or deposit.status != "paid":
+            raise ConflictError("Balance requires the deposit to be paid first")
+
+    existing_live = (
+        db.query(Payment)
+        .filter(Payment.vendor_id == vendor_id, Payment.kind == kind, Payment.status.in_(["processing", "paid"]))
+        .order_by(Payment.id.desc()).first()
     )
+    if existing_live:
+        return {"payment_id": existing_live.id, "kind": kind, "status": existing_live.status}
+
+    attempt = db.query(Payment).filter(Payment.vendor_id == vendor_id, Payment.kind == kind).count() + 1
+    idempotency_key = f"vendor:{vendor_id}:{kind}:{attempt}"
+    amount = vendor.deposit_amount if kind == "deposit" else vendor.balance_amount
+
+    payment = Payment(
+        vendor_id=vendor_id, kind=kind, amount=amount, currency="NGN",
+        status="processing", provider="mock", idempotency_key=idempotency_key,
+    )
+    db.add(payment)
+    log_activity(db, vendor.event_id, f"{kind.capitalize()} payment started for {vendor.name}", "payment_processing", vendor_id=vendor_id)
+    touch(db, vendor.event_id)
+    db.commit()
+    db.refresh(payment)
+
+    result = payments_client.execute_payment(
+        idempotency_key=idempotency_key, vendor_ref=str(vendor_id), amount=amount,
+        currency="NGN", kind=kind, description=f"{kind.capitalize()}: {vendor.name}",
+    )
+
+    payment.provider = result.get("provider", "mock")
+    payment.provider_ref = result.get("provider_ref")
+    payment.status = result.get("status", "failed")
+    payment.updated_at = datetime.utcnow()
+
+    activity_type = "payment_paid" if payment.status == "paid" else "payment_failed"
+    log_activity(db, vendor.event_id, f"{kind.capitalize()} for {vendor.name} {payment.status}", activity_type, vendor_id=vendor_id)
+    touch(db, vendor.event_id)
+    db.commit()
+
+    return {"payment_id": payment.id, "kind": kind, "status": payment.status}

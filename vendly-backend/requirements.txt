@@ -13,10 +13,12 @@ pydantic==2.13.5
 pydantic_core==2.46.5
 pydantic-settings==2.10.1
 pyngrok==8.1.2
+psycopg[binary]==3.2.3
+pytest==8.3.4
 PyYAML==6.0.3
+requests==2.32.3
 SQLAlchemy==2.0.54
 starlette==1.6.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.53.0
-requests==2.32.3
