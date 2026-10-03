@@ -104,8 +104,10 @@ async def receive_webhook(request: Request):
 
                     answer_pair = _extract_button_answer(message)
                     vendor = None
+                    answer: str | None = None
                     if answer_pair:
                         answer, vendor_id = answer_pair
+                        answer: str | None = None
                         vendor = db.get(Vendor, vendor_id)
                     else:
                         # Fallback: sender typed free text instead of tapping a
