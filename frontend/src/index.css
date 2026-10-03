@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    /* Light Mode */
+    --color-white: #ffffff;
+    --color-surface: #F1F5F9;
+    --color-ink: #0F172A;
+    --color-muted: #64748B;
+    --color-line: #CBD5E1;
+    --color-brand: #0F766E;
+    --color-brand-tint: #CCFBF1;
+    
+    --color-slate-50: #F8FAFC;
+    --color-slate-100: #F1F5F9;
+  }
+
+  /* Changed from @media to a strict class selector */
+  .dark {
+    /* Dark Mode Overrides */
+    --color-white: #1E293B;      
+    --color-surface: #0F172A;    
+    --color-ink: #F8FAFC;        
+    --color-muted: #94A3B8;      
+    --color-line: #334155;       
+    --color-brand: #14B8A6;      
+    --color-brand-tint: #134E4A; 
+    
+    --color-slate-50: #334155;   
+    --color-slate-100: #475569;  
+  }
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
