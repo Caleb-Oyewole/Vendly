@@ -29,7 +29,7 @@ export default function EventBudgetPage() {
     amount: 0
   });
 
-  const [toastMessage, setToastMessage] = useState('');
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   if (isLoading) return <div className="p-8"><Skeleton rows={5} /></div>;
   if (isError || !budgetData) return <div className="p-8"><ErrorState message="Could not load budget data" onRetry={() => refetch()} /></div>;
@@ -62,17 +62,17 @@ export default function EventBudgetPage() {
     if (!confirmModal.type || !confirmModal.vendorId) return;
     try {
       const res = await api.post<any>(`/budget/${confirmModal.vendorId}/disburse`, { kind: confirmModal.type });
-      setToastMessage(`Payment ${res.status}`);
+      setToast({message: `Payment ${res.status}`, type: 'success'});
       setConfirmModal({ ...confirmModal, isOpen: false });
       refetch();
     } catch (e) {
-      setToastMessage('Payment failed');
+      setToast({message: 'Payment failed', type: 'error'});
     }
   };
 
   return (
     <div className="space-y-6">
-      {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
+      {toast?.message && <Toast message={toast?.message} onClose={() => setToast({message: '', type: 'success'})} />}
 
       {/* Header section (re-used structure) */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">

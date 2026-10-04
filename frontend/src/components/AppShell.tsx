@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../contexts/AuthContext';
+import { logoutUser } from '../lib/firebase';
 
 export default function AppShell() {
   const location = useLocation();
+  const { user } = useAuth();
   
-  // 1. Lazy initialize state: This runs once BEFORE the first render.
   const [isDark, setIsDark] = useState(() => {
     const savedTheme = localStorage.getItem('vendly-theme');
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
   });
 
-  // 2. Synchronize DOM to state: This runs when isDark changes, avoiding setState loops.
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -21,7 +22,6 @@ export default function AppShell() {
     }
   }, [isDark]);
 
-  // 3. Toggle handler: Just updates React state and localStorage.
   const toggleTheme = () => {
     setIsDark((prev) => {
       const newValue = !prev;
@@ -32,25 +32,21 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-200">
-      {/* Top Navigation - Restored to solid bg-brand */}
       <header className="bg-brand text-white shrink-0 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            
-            {/* IMPROVED AFFORDANCE: Logo depresses on click */}
             <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight active:scale-95 transition-transform">
               <div className="bg-white text-brand w-8 h-8 rounded flex items-center justify-center font-black shadow-sm">V</div>
               Vendly
             </Link>
             
             <nav className="hidden md:flex gap-4">
-              {/* HIGH AFFORDANCE "EVENTS" BUTTON: Shaped like a pill, reacts to hover and click */}
               <Link 
                 to="/" 
                 className={`flex items-center gap-2 px-4 py-2 rounded-btn text-sm font-bold transition-all duration-200 active:scale-95 shadow-sm border ${
                   location.pathname === '/' || location.pathname.startsWith('/events') 
-                    ? 'bg-white text-brand border-white shadow-inner' // Active State: Solid white pill
-                    : 'bg-black/10 text-white border-transparent hover:bg-white/20 hover:border-white/30' // Inactive State: Translucent pill
+                    ? 'bg-white text-brand border-white shadow-inner'
+                    : 'bg-black/10 text-white border-transparent hover:bg-white/20 hover:border-white/30'
                 }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
@@ -62,7 +58,6 @@ export default function AppShell() {
           </div>
           
           <div className="flex items-center gap-5">
-            {/* IMPROVED AFFORDANCE: Dark Mode Toggle Button depresses on click */}
             <button 
               onClick={toggleTheme} 
               className="p-1.5 rounded-full hover:bg-black/10 active:scale-95 transition-all flex items-center justify-center"
@@ -75,18 +70,31 @@ export default function AppShell() {
               )}
             </button>
 
-            {/* IMPROVED AFFORDANCE: User Profile highlights on hover */}
-            <div className="flex items-center gap-2 border-l border-brand-tint/30 pl-5">
-              <span className="text-sm font-medium hidden sm:block text-brand-tint">Demo Organizer</span>
-              <div className="w-8 h-8 rounded-full bg-brand-tint text-brand flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer hover:ring-2 hover:ring-white/50 transition-all">
-                DO
+            <div className="flex items-center gap-3 border-l border-brand-tint/30 pl-5 relative group">
+              <span className="text-sm font-medium hidden sm:block text-brand-tint truncate max-w-[150px]">
+                {user?.displayName || user?.email || 'User'}
+              </span>
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-white/20 shadow-sm" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-brand-tint text-brand flex items-center justify-center text-sm font-bold shadow-sm">
+                  {(user?.displayName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                </div>
+              )}
+              
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-card shadow-lg border border-line opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                <button 
+                  onClick={logoutUser}
+                  className="w-full text-left px-4 py-3 text-sm text-status-declined hover:bg-slate-50 font-medium"
+                >
+                  Sign out
+                </button>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>

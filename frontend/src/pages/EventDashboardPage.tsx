@@ -22,7 +22,7 @@ export default function EventDashboardPage() {
   const vendorIdParam = searchParams.get('vendor');
 
   const { data: statusData, isLoading, isError, refetch } = useEventStatus(eventId);
-  const [toastMessage, setToastMessage] = useState('');
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isAddingVendor, setIsAddingVendor] = useState(false);
 
   const [isEditSlideOpen, setIsEditSlideOpen] = useState(false);
@@ -31,11 +31,11 @@ export default function EventDashboardPage() {
   const onEditEvent = async (data: any) => {
     try {
       await api.patch(`/events/${eventId}`, data);
-      setToastMessage('Event updated successfully');
+      setToast({message: 'Event updated successfully', type: 'success'});
       setIsEditSlideOpen(false);
       refetch();
     } catch (e) {
-      setToastMessage('Failed to update event');
+      setToast({message: 'Failed to update event', type: 'error'});
     }
   };
 
@@ -60,10 +60,10 @@ export default function EventDashboardPage() {
       const res = await api.post<any>('/notify/send', { event_id: eventId });
       const total = res.results?.length || 0;
       const failed = res.results?.filter((r: any) => !r.ok).length || 0;
-      setToastMessage(`${total - failed} sent, ${failed} failed.`);
+      setToast({message: `${total - failed} sent, ${failed} failed.`, type: 'error'});
       refetch();
     } catch (e) {
-      setToastMessage('Failed to send confirmations');
+      setToast({message: 'Failed to send confirmations', type: 'error'});
     }
   };
 
@@ -71,10 +71,10 @@ export default function EventDashboardPage() {
     e.stopPropagation();
     try {
       await api.post<any>('/notify/send', { event_id: eventId, vendor_ids: [vendor.id] });
-      setToastMessage(`Resent to ${vendor.name}`);
+      setToast({message: `Resent to ${vendor.name}`, type: 'success'});
       refetch();
     } catch (err) {
-      setToastMessage('Failed to resend');
+      setToast({message: 'Failed to resend', type: 'error'});
     }
   };
 
@@ -86,18 +86,18 @@ export default function EventDashboardPage() {
         deposit_amount: (Number(data.deposit) || 0) * 100,
         balance_amount: (Number(data.balance) || 0) * 100
       });
-      setToastMessage('Vendor added successfully');
+      setToast({message: 'Vendor added successfully', type: 'success'});
       setIsAddingVendor(false);
       reset();
       refetch();
     } catch (err) {
-      setToastMessage('Failed to add vendor');
+      setToast({message: 'Failed to add vendor', type: 'error'});
     }
   };
 
   return (
     <div className="space-y-6 relative">
-      {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage('')} />}
+      {toast?.message && <Toast message={toast?.message} onClose={() => setToast({message: '', type: 'success'})} />}
       
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
